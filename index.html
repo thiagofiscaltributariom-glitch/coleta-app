@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Cadastro Offline</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -20,7 +20,7 @@
       font-weight: bold;
     }
 
-    select, input, button {
+    input, button {
       width: 100%;
       padding: 10px;
       margin-top: 5px;
@@ -55,21 +55,17 @@
 <div class="card">
   <h2>Cadastro de Localização</h2>
 
-  <h3>Localização</h3>
-
   <label>Distrito</label>
   <input type="text" value="1" disabled>
   <input type="hidden" id="distrito" value="1">
 
   <label>Bairro *</label>
-  <select id="bairro" required>
-    <option value="">Selecione</option>
-  </select>
+  <input list="listaBairros" id="bairroInput" placeholder="Digite para buscar..." required>
+  <datalist id="listaBairros"></datalist>
 
   <label>Setor *</label>
-  <select id="setor" required>
-    <option value="">Selecione</option>
-  </select>
+  <input list="listaSetores" id="setorInput" placeholder="Digite para buscar..." required>
+  <datalist id="listaSetores"></datalist>
 
   <button onclick="salvar()">Salvar</button>
 </div>
@@ -77,41 +73,41 @@
 <script>
 
   // =========================
-  // LISTAS (exemplo inicial)
+  // COLE AQUI SUA LISTA COMPLETA
   // =========================
 
   const bairros = [
     { id: 11150, nome: "SOL NASCENTE 2 ETAPA" },
     { id: 11149, nome: "FAZENDA CORDEIRO" },
     { id: 11148, nome: "FAZENDA ALMAS" }
+    // 👇 COLE O RESTANTE DA SUA LISTA AQUI
   ];
 
   const setores = [
     { id: 11135, nome: "SOL NASCENTE 2 ETAPA" },
     { id: 11134, nome: "FAZENDA VERA CRUZ" },
     { id: 11133, nome: "JARDIM CERRADO" }
+    // 👇 COLE O RESTANTE DA SUA LISTA AQUI
   ];
 
   // =========================
-  // CARREGAR SELECTS
+  // CARREGAR DATALIST
   // =========================
 
-  function carregarOpcoes() {
-    const bairroSelect = document.getElementById("bairro");
-    const setorSelect = document.getElementById("setor");
+  function carregarListas() {
+    const listaBairros = document.getElementById("listaBairros");
+    const listaSetores = document.getElementById("listaSetores");
 
     bairros.forEach(b => {
       const option = document.createElement("option");
-      option.value = b.id;
-      option.textContent = b.nome;
-      bairroSelect.appendChild(option);
+      option.value = b.nome;
+      listaBairros.appendChild(option);
     });
 
     setores.forEach(s => {
       const option = document.createElement("option");
-      option.value = s.id;
-      option.textContent = s.nome;
-      setorSelect.appendChild(option);
+      option.value = s.nome;
+      listaSetores.appendChild(option);
     });
   }
 
@@ -137,16 +133,19 @@
   };
 
   // =========================
-  // SALVAR DADOS
+  // SALVAR
   // =========================
 
   function salvar() {
     const distrito = 1;
-    const bairro = document.getElementById("bairro").value;
-    const setor = document.getElementById("setor").value;
+    const bairroNome = document.getElementById("bairroInput").value.trim();
+    const setorNome = document.getElementById("setorInput").value.trim();
 
-    if (!bairro || !setor) {
-      alert("Preencha os campos obrigatórios!");
+    const bairroObj = bairros.find(b => b.nome === bairroNome);
+    const setorObj = setores.find(s => s.nome === setorNome);
+
+    if (!bairroObj || !setorObj) {
+      alert("Selecione valores válidos da lista!");
       return;
     }
 
@@ -155,15 +154,18 @@
 
     store.add({
       distrito: distrito,
-      bairro_id: Number(bairro),
-      setor_id: Number(setor),
+      bairro_id: bairroObj.id,
+      setor_id: setorObj.id,
       data: new Date()
     });
 
     alert("Salvo com sucesso (offline)!");
+    
+    document.getElementById("bairroInput").value = "";
+    document.getElementById("setorInput").value = "";
   }
 
-  window.onload = carregarOpcoes;
+  window.onload = carregarListas;
 
 </script>
 
