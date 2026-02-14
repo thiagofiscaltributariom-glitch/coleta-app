@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Coleta Offline</title>
+</head>
+<body>
+
+<h2>Coleta de Dados</h2>
+
+<input id="nome" placeholder="Nome">
+<input id="cpf" placeholder="CPF">
+<button onclick="salvar()">Salvar Offline</button>
+
+<hr>
+
+<button onclick="loginGoogle()">Login Google</button>
+<button onclick="enviarTudo()">Enviar Tudo</button>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+const CLIENT_ID = "COLE_SEU_CLIENT_ID_AQUI";
+const FOLDER_ID = "COLE_ID_DA_PASTA_AQUI";
+
+let tokenClient;
+let accessToken = null;
+
+let db;
+
+const request = indexedDB.open("coletaDB", 1);
+
+request.onupgradeneeded = function(e) {
+  db = e.target.result;
+  db.createObjectStore("dados", { autoIncrement: true });
+};
+
+request.onsuccess = function(e) {
+  db = e.target.result;
+};
+
+function salvar() {
+  const nome = document.getElementById("nome").value;
+  const cpf = document.getElementById("cpf").value;
+
+  const tx = db.transaction("dados", "readwrite");
+  const store = tx.objectStore("dados");
+
+  store.add({
+    nome,
+    cpf,
+    data: new Date()
+  });
+
+  alert("Salvo offline!");
+}
+
+function loginGoogle() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: "https://www.googleapis.com/auth/drive.file",
+    callback: (response) => {
+      accessToken = response.access_token;
+      alert("Login realizado!");
+    },
+  });
+
+  tokenClient.requestAccessToken();
+}
+
+async function enviarTudo() {
+  if (!accessToken) {
+    alert("Faça login primeiro!");
+    return;
+  }
+
+  const tx = db.transaction("dados", "readonly");
+  const store = tx.objectStore("dados");
+  const request = store.getAll();
+
+  request.onsuccess = async function() {
+    const dados = request.result;
+
+    if (dados.length === 0) {
+      alert("Nenhum dado para enviar.");
+      return;
+    }
+
+    const blob = new Blob([JSON.stringify(dados)], { type: "application/json" });
+
+    const metadata = {
+      name: "coleta_" + Date.now() + ".json",
+      parents: [FOLDER_ID]
+    };
+
+    const form = new FormData();
+    form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+    form.append("file", blob);
+
+    const response = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+      {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + accessToken
+        },
+        body: form
+      }
+    );
+
+    if (response.ok) {
+      limparDados();
+      alert("Enviado com sucesso!");
+    } else {
+      alert("Erro ao enviar.");
+    }
+  };
+}
+
+function limparDados() {
+  const tx = db.transaction("dados", "readwrite");
+  const store = tx.objectStore("dados");
+  store.clear();
+}
+</script>
+
+</body>
+</html>
