@@ -1,122 +1,218 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Coleta de Dados</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Cadastro Offline</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f4f6f9;
+    }
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+    h2 { color: #333; }
 
-        .container {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-        }
+    label { font-weight: bold; }
 
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
 
-        label {
-            font-weight: bold;
-            font-size: 14px;
-        }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
 
-        input {
-            width: 100%;
-            padding: 8px;
-            margin: 5px 0 15px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
+    button:hover { background-color: #0056b3; }
 
-        button {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            font-size: 16px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
 
-        button:hover {
-            background-color: #0056b3;
-        }
+    .enviar {
+      background-color: #28a745;
+    }
 
-        .status {
-            margin-top: 15px;
-            text-align: center;
-            font-weight: bold;
-        }
-    </style>
+    .enviar:hover {
+      background-color: #1e7e34;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="container">
-    <h2>Formulário de Coleta</h2>
+<div class="card">
+  <h2>Cadastro de Localização</h2>
 
-    <label>Nome</label>
-    <input type="text" id="nome" required>
+  <label>Distrito</label>
+  <input type="text" value="1" disabled>
+  <input type="hidden" id="distrito" value="1">
 
-    <label>Email</label>
-    <input type="email" id="email" required>
+  <label>Bairro *</label>
+  <select id="bairro" required>
+    <option value="">Selecione</option>
+  </select>
 
-    <label>Telefone</label>
-    <input type="text" id="telefone" required>
+  <label>Setor *</label>
+  <select id="setor" required>
+    <option value="">Selecione</option>
+  </select>
 
-    <button onclick="enviarDados()">Enviar</button>
+  <button onclick="salvar()">Salvar Offline</button>
 
-    <div class="status" id="status"></div>
+  <button class="enviar" onclick="enviarTudo()">Enviar Tudo ao Servidor</button>
 </div>
 
 <script>
-async function enviarDados() {
 
-    const status = document.getElementById("status");
-    status.innerHTML = "Enviando...";
+// =========================
+// 🔹 LISTAS
+// =========================
 
-    const dados = {
-        nome: document.getElementById("nome").value,
-        email: document.getElementById("email").value,
-        telefone: document.getElementById("telefone").value
-    };
+const bairros = [
+  { id: 11150, nome: "SOL NASCENTE 2 ETAPA" },
+  { id: 11149, nome: "FAZENDA CORDEIRO" },
+  { id: 11148, nome: "FAZENDA ALMAS" }
+];
+
+const setores = [
+  { id: 11135, nome: "SOL NASCENTE 2 ETAPA" },
+  { id: 11134, nome: "FAZENDA VERA CRUZ" },
+  { id: 11133, nome: "JARDIM CERRADO" }
+];
+
+function carregarOpcoes() {
+  const bairroSelect = document.getElementById("bairro");
+  const setorSelect = document.getElementById("setor");
+
+  bairros.forEach(b => {
+    const option = document.createElement("option");
+    option.value = b.id;
+    option.textContent = b.nome;
+    bairroSelect.appendChild(option);
+  });
+
+  setores.forEach(s => {
+    const option = document.createElement("option");
+    option.value = s.id;
+    option.textContent = s.nome;
+    setorSelect.appendChild(option);
+  });
+}
+
+// =========================
+// 🔹 INDEXEDDB
+// =========================
+
+let db;
+const request = indexedDB.open("cadastroDB", 1);
+
+request.onupgradeneeded = function(event) {
+  db = event.target.result;
+  db.createObjectStore("dados", { keyPath: "id", autoIncrement: true });
+};
+
+request.onsuccess = function(event) {
+  db = event.target.result;
+};
+
+request.onerror = function() {
+  alert("Erro ao abrir banco de dados");
+};
+
+// =========================
+// 🔹 SALVAR OFFLINE
+// =========================
+
+function salvar() {
+  const distrito = 1;
+  const bairro = document.getElementById("bairro").value;
+  const setor = document.getElementById("setor").value;
+
+  if (!bairro || !setor) {
+    alert("Preencha os campos obrigatórios!");
+    return;
+  }
+
+  const tx = db.transaction("dados", "readwrite");
+  const store = tx.objectStore("dados");
+
+  store.add({
+    distrito: distrito,
+    bairro_id: Number(bairro),
+    setor_id: Number(setor),
+    data: new Date()
+  });
+
+  alert("Salvo offline com sucesso!");
+}
+
+// =========================
+// 🔹 ENVIAR TUDO PARA SERVIDOR
+// =========================
+
+async function enviarTudo() {
+
+  const tx = db.transaction("dados", "readonly");
+  const store = tx.objectStore("dados");
+  const request = store.getAll();
+
+  request.onsuccess = async function() {
+
+    const registros = request.result;
+
+    if (registros.length === 0) {
+      alert("Nenhum dado para enviar.");
+      return;
+    }
 
     try {
-        const resposta = await fetch("SEU_LINK_NGROK_AQUI/receber", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(dados)
-        });
 
-        if (resposta.ok) {
-            status.innerHTML = "✅ Dados enviados com sucesso!";
-            document.getElementById("nome").value = "";
-            document.getElementById("email").value = "";
-            document.getElementById("telefone").value = "";
-        } else {
-            status.innerHTML = "❌ Erro ao enviar.";
-        }
+      // 🔴 TROCAR_AQUI_LINK_NGROK
+      const resposta = await fetch("https://SEU_LINK_NGROK_AQUI/receber", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(registros)
+      });
+
+      if (resposta.ok) {
+
+        // Apagar dados após confirmação
+        const txDelete = db.transaction("dados", "readwrite");
+        const storeDelete = txDelete.objectStore("dados");
+        storeDelete.clear();
+
+        alert("Dados enviados e apagados do dispositivo!");
+
+      } else {
+        alert("Erro ao enviar para servidor.");
+      }
 
     } catch (erro) {
-        status.innerHTML = "❌ Erro de conexão.";
-        console.error(erro);
+      alert("Erro de conexão com servidor.");
+      console.error(erro);
     }
+  };
 }
+
+window.onload = carregarOpcoes;
+
 </script>
+
+</body>
+</html>
