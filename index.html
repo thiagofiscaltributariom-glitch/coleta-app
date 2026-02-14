@@ -1,173 +1,23 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Cadastro Offline</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f6f9;
-    }
-
-    h2 {
-      color: #333;
-    }
-
-    label {
-      font-weight: bold;
-    }
-
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      margin-bottom: 15px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-
-    button {
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #0056b3;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-  </style>
-</head>
-
-<body>
-
-<div class="card">
-  <h2>Cadastro de Localização</h2>
-
-  <label>Distrito</label>
-  <input type="text" value="1" disabled>
-  <input type="hidden" id="distrito" value="1">
-
-  <label>Bairro *</label>
-  <input list="listaBairros" id="bairroInput" placeholder="Digite para buscar..." required>
-  <datalist id="listaBairros"></datalist>
-
-  <label>Setor *</label>
-  <input list="listaSetores" id="setorInput" placeholder="Digite para buscar..." required>
-  <datalist id="listaSetores"></datalist>
-
-  <button onclick="salvar()">Salvar</button>
-</div>
-
 <script>
+async function enviarDados() {
+    const dados = {
+        distrito: document.getElementById("distrito").value,
+        bairro_id: document.getElementById("bairro").value,
+        setor_id: document.getElementById("setor").value
+    };
 
-  // =========================
-  // COLE AQUI SUA LISTA COMPLETA
-  // =========================
-
-  const bairros = [
-    { id: 11150, nome: "SOL NASCENTE 2 ETAPA" },
-    { id: 11149, nome: "FAZENDA CORDEIRO" },
-    { id: 11148, nome: "FAZENDA ALMAS" }
-    // 👇 COLE O RESTANTE DA SUA LISTA AQUI
-  ];
-
-  const setores = [
-    { id: 11135, nome: "SOL NASCENTE 2 ETAPA" },
-    { id: 11134, nome: "FAZENDA VERA CRUZ" },
-    { id: 11133, nome: "JARDIM CERRADO" }
-    // 👇 COLE O RESTANTE DA SUA LISTA AQUI
-  ];
-
-  // =========================
-  // CARREGAR DATALIST
-  // =========================
-
-  function carregarListas() {
-    const listaBairros = document.getElementById("listaBairros");
-    const listaSetores = document.getElementById("listaSetores");
-
-    bairros.forEach(b => {
-      const option = document.createElement("option");
-      option.value = b.nome;
-      listaBairros.appendChild(option);
+    const resposta = await fetch("https://abc123.ngrok-free.app/receber", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(dados)
     });
 
-    setores.forEach(s => {
-      const option = document.createElement("option");
-      option.value = s.nome;
-      listaSetores.appendChild(option);
-    });
-  }
-
-  // =========================
-  // INDEXEDDB
-  // =========================
-
-  let db;
-
-  const request = indexedDB.open("cadastroDB", 1);
-
-  request.onupgradeneeded = function(event) {
-    db = event.target.result;
-    db.createObjectStore("dados", { keyPath: "id", autoIncrement: true });
-  };
-
-  request.onsuccess = function(event) {
-    db = event.target.result;
-  };
-
-  request.onerror = function() {
-    alert("Erro ao abrir banco de dados");
-  };
-
-  // =========================
-  // SALVAR
-  // =========================
-
-  function salvar() {
-    const distrito = 1;
-    const bairroNome = document.getElementById("bairroInput").value.trim();
-    const setorNome = document.getElementById("setorInput").value.trim();
-
-    const bairroObj = bairros.find(b => b.nome === bairroNome);
-    const setorObj = setores.find(s => s.nome === setorNome);
-
-    if (!bairroObj || !setorObj) {
-      alert("Selecione valores válidos da lista!");
-      return;
+    if (resposta.ok) {
+        alert("Dados enviados com sucesso!");
+    } else {
+        alert("Erro ao enviar");
     }
-
-    const tx = db.transaction("dados", "readwrite");
-    const store = tx.objectStore("dados");
-
-    store.add({
-      distrito: distrito,
-      bairro_id: bairroObj.id,
-      setor_id: setorObj.id,
-      data: new Date()
-    });
-
-    alert("Salvo com sucesso (offline)!");
-    
-    document.getElementById("bairroInput").value = "";
-    document.getElementById("setorInput").value = "";
-  }
-
-  window.onload = carregarListas;
-
+}
 </script>
-
-</body>
-</html>
